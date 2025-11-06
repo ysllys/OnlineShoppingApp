@@ -3,6 +3,7 @@ package com.example.onlineshoppingapp.service;
 import com.example.onlineshoppingapp.dao.ProductDAO;
 import com.example.onlineshoppingapp.domain.Product;
 import com.example.onlineshoppingapp.Views;
+import com.example.onlineshoppingapp.dto.ProductCreationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +36,30 @@ public class ProductService {
         newProduct.setId(null);
         return productDAO.save(newProduct);
     }
+    public Product convertDtoToEntity(ProductCreationRequest creationDTO) {
+        Product product = new Product();
 
+        // Map data from DTO to Entity
+        product.setName(creationDTO.getName());
+        product.setDescription(creationDTO.getDescription());
+
+        // Use the DTO fields to set the corresponding Entity fields
+        product.setWholesalePrice(creationDTO.getWholesalePrice());
+        product.setRetailPrice(creationDTO.getRetailPrice());
+        product.setQuantity(creationDTO.getQuantity());
+
+        // Default System Field Logic:
+        // 1. Ensure the ID is null (important for new entity creation/persistence)
+        product.setId(null);
+
+        // 2. Set any default flags or values (if necessary)
+        // product.setIsActive(true);
+
+        // Note: Fields like 'creationDate' are often handled automatically
+        // by JPA/Hibernate listeners, so you may not need to set them here.
+
+        return product;
+    }
     /**
      * Handles a partial update (PATCH) for a product by applying non-null fields
      * from the incoming payload to the existing entity.

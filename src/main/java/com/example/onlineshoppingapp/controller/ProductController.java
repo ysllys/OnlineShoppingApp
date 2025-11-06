@@ -1,9 +1,12 @@
 package com.example.onlineshoppingapp.controller;
 
 import com.example.onlineshoppingapp.domain.Product;
+import com.example.onlineshoppingapp.dto.ProductCreationRequest;
+import com.example.onlineshoppingapp.dto.ProductUpdateRequest;
 import com.example.onlineshoppingapp.service.ProductService;
 import com.example.onlineshoppingapp.Views;
 import com.fasterxml.jackson.annotation.JsonView;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +37,7 @@ public class ProductController {
     // Admin sees: all fields, including wholesalePrice and quantity
     @JsonView(Views.AdminView.class)
     @GetMapping("/{id}")
-    // Note: You would secure this endpoint using @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Product getProductDetailAdmin(@PathVariable Integer id) {
         return productService.getProductForAdminView(id);
     }
@@ -49,18 +52,14 @@ public class ProductController {
     // @PostMapping("/products")
     @PreAuthorize("hasRole('ADMIN')")
     // NOTE: This method should be secured with @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Product> addProduct(@RequestBody Product newProduct) {
-        // Validation check: Ensure the necessary fields are present before saving
-        if (newProduct.getName() == null || newProduct.getRetailPrice() == null ||
-                newProduct.getWholesalePrice() == null || newProduct.getQuantity() == null) {
+    public ResponseEntity<Product> addProduct(@Valid @RequestBody ProductCreationRequest creationDTO) {
 
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST); // 400 Bad Request
-        }
+        // 1. Convert DTO to Entity (Service layer job)
+        Product newProduct = productService.convertDtoToEntity(creationDTO);
 
-        // The service layer handles saving the product to the DAO
+        // 2. Service handles persistence
         Product savedProduct = productService.addNewProduct(newProduct);
 
-        // Return 201 Created status with the saved product details
         return new ResponseEntity<>(savedProduct, HttpStatus.CREATED);
     }
 
@@ -74,23 +73,21 @@ public class ProductController {
     @PreAuthorize("hasRole('ADMIN')") // Security check is crucial here
     public ResponseEntity<Product> updateProductPartially(
             @PathVariable Integer id,
-            @RequestBody Product partialUpdateProduct) {
+            @RequestBody ProductUpdateRequest request) {
 
-        // 1. Service handles finding the existing product and applying non-null fields
-        //    from partialUpdateProduct.
+        Product partialUpdate = new Product();
+        if (request.getName() != null) partialUpdate.setName(request.getName());
+        if (request.getDescription() != null) partialUpdate.setDescription(request.getDescription());
+        if (request.getWholesalePrice() != null) partialUpdate.setWholesalePrice(request.getWholesalePrice());
+        if (request.getRetailPrice() != null) partialUpdate.setRetailPrice(request.getRetailPrice());
+        if (request.getQuantity() != null) partialUpdate.setQuantity(request.getQuantity());
+
         try {
-            Product updatedProduct = productService.updateProductPartially(id, partialUpdateProduct);
-
-            // 2. Return the updated resource with 200 OK or 204 No Content
+            Product updatedProduct = productService.updateProductPartially(id, partialUpdate);
             return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
-
         } catch (RuntimeException e) {
-            // Handle cases where the product is not found
-            if (e.getMessage() != null && e.getMessage().contains("not found")) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND); // 404 Not Found
-            }
-            // Handle other server errors
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            // ... error handling ...
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 }

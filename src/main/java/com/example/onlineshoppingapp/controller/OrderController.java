@@ -3,8 +3,10 @@ package com.example.onlineshoppingapp.controller;
 import com.example.onlineshoppingapp.dao.OrderDAO.NotEnoughInventoryException;
 import com.example.onlineshoppingapp.dao.OrderDAO.ResourceNotFoundException;
 import com.example.onlineshoppingapp.domain.Order;
+import com.example.onlineshoppingapp.dto.OrderCreationRequest;
 import com.example.onlineshoppingapp.service.OrderService;
 import com.example.onlineshoppingapp.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,24 +36,21 @@ public class OrderController {
     // Request Body: { "products": { "productId": quantity, ... } }
     @PostMapping
     // @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Order> placeOrder(@RequestBody Map<String, Map<Integer, Integer>> requestBody, Principal principal) {
-        // In a real app, principal.getName() would be used to find the User entity ID
-        // 1. Get the username (or unique ID if configured that way)
-        String username = principal.getName();
-
-        // 2. Look up the full User object/ID using the UserService
-        Integer userId = userService.getUserIdByUsername(username);
-
-        // Extract the map of product IDs and quantities
-        Map<Integer, Integer> productQuantities = requestBody.get("products");
-
-        if (productQuantities == null || productQuantities.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+    public ResponseEntity<Order> placeOrder(
+            @Valid @RequestBody OrderCreationRequest request, // <--- Use DTO here
+            Principal principal) {
 
         try {
-            Order newOrder = orderService.placeNewOrder(userId, productQuantities);
-            return new ResponseEntity<>(newOrder, HttpStatus.CREATED); // 201
+            // 1. Get the username (or unique ID if configured that way)
+            String username = principal.getName();
+
+            // 2. Look up the full User object/ID using the UserService
+            Integer userId = userService.getUserIdByUsername(username);
+
+            // Pass the DTO to the service
+            Order newOrder = orderService.placeNewOrder(userId, request);
+
+            return new ResponseEntity<>(newOrder, HttpStatus.CREATED);
         } catch (NotEnoughInventoryException e) {
             return new ResponseEntity<>(HttpStatus.CONFLICT); // 409 Conflict
         } catch (ResourceNotFoundException e) {

@@ -10,6 +10,8 @@ import com.example.onlineshoppingapp.domain.Order.OrderStatus;
 import com.example.onlineshoppingapp.domain.OrderItem;
 import com.example.onlineshoppingapp.domain.Product;
 import com.example.onlineshoppingapp.domain.User;
+import com.example.onlineshoppingapp.dto.OrderCreationRequest;
+import com.example.onlineshoppingapp.dto.OrderItemRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,18 +40,19 @@ public class OrderService {
     /**
      * Creates a new "Processing" order, performs inventory checks, and deducts stock.
      * @param userId The ID of the user placing the order.
-     * @param productQuantities A map of Product ID to purchased Quantity.
+     * @param request The DTO containing the list of items and quantities.
      * @return The created Order entity.
      * @throws NotEnoughInventoryException if stock is insufficient.
      * @throws ResourceNotFoundException if user or product is not found.
      */
     @Transactional
-    public Order placeNewOrder(Integer userId, Map<Integer, Integer> productQuantities) {
+    public Order placeNewOrder(Integer userId, OrderCreationRequest request) {
+
         // 1. Fetch User
         User user = userDAO.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
-        // 2. Prepare Order and OrderItems (with historical pricing)
+        // 2. Prepare Order entity
         Order newOrder = new Order();
         newOrder.setUser(user);
         newOrder.setOrderTime(LocalDateTime.now());
@@ -57,26 +60,28 @@ public class OrderService {
 
         List<OrderItem> items = new ArrayList<>();
 
-        for (Map.Entry<Integer, Integer> entry : productQuantities.entrySet()) {
-            Integer productId = entry.getKey();
-            Integer quantity = entry.getValue();
+        // 3. Process DTO items, fetch products, and prepare OrderItems
+        for (OrderItemRequest itemDTO : request.getItems()) {
+            Integer productId = itemDTO.getProductId();
+            Integer quantity = itemDTO.getQuantity();
 
-            // Fetch Product (DAO finds the current stock)
-            Product product = productDAO.findByIdForAdminView(productId) // Use Admin view as it gets full entity regardless of stock
+            // Fetch Product (DAO finds the current stock and pricing)
+            Product product = productDAO.findByIdForAdminView(productId)
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
 
             // Create OrderItem, capturing prices at this moment in time
             OrderItem item = new OrderItem();
             item.setProduct(product);
             item.setQuantity(quantity);
-            // Capture historical prices!
+
+            // Capture historical prices! (Essential for reporting accuracy)
             item.setRetailPrice(product.getRetailPrice());
             item.setWholesalePrice(product.getWholesalePrice());
 
             items.add(item);
         }
 
-        // 3. Delegate to DAO for transaction/inventory logic
+        // 4. Delegate to DAO for transaction/inventory logic
         // The DAO handles the stock check, deduction, and persistence (Order and OrderItems)
         return orderDAO.placeOrder(newOrder, items);
     }
