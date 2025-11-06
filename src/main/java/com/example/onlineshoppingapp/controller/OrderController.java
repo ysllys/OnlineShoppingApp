@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal; // Used to get the logged-in user's info
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/orders")
