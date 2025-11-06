@@ -22,7 +22,7 @@ public class UserController {
     /**
      * Endpoint for user registration.
      * URL: POST /api/users/register
-     * @param user The User entity (containing username, email, passwordHash) from the request body.
+     * @param registerRequest The User entity (containing username, email, passwordHash) from the request body.
      * @return 201 Created on success, 409 Conflict on duplicate data.
      */
     @PostMapping("/signup")
