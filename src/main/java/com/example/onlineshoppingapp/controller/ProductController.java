@@ -3,6 +3,7 @@ package com.example.onlineshoppingapp.controller;
 import com.example.onlineshoppingapp.domain.Product;
 import com.example.onlineshoppingapp.dto.ProductCreationRequest;
 import com.example.onlineshoppingapp.dto.ProductUpdateRequest;
+import com.example.onlineshoppingapp.security.AuthUserDetail;
 import com.example.onlineshoppingapp.service.ProductService;
 import com.example.onlineshoppingapp.Views;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,24 +26,15 @@ public class ProductController {
         this.productService = productService;
     }
 
-    // --- Public View Endpoint (GET product detail) ---
-    // User sees: id, name, description, retailPrice
-    @JsonView(Views.PublicView.class)
     @GetMapping("/{id}")
-    public Product getProductDetailPublic(@PathVariable Integer id) {
-        // Assume service retrieves the product or throws exception if not found/out-of-stock
-        return productService.getProductForPublicView(id);
-    }
+    @PreAuthorize("isAuthenticated()")
+    public Product getDetail(@AuthenticationPrincipal AuthUserDetail userDetails, @PathVariable Integer id) {
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-    // --- Admin View Endpoint (GET product detail - admin) ---
-    // Admin sees: all fields, including wholesalePrice and quantity
-    @JsonView(Views.AdminView.class)
-    @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Product getProductDetailAdmin(@PathVariable Integer id) {
-        return productService.getProductForAdminView(id);
+        if (isAdmin) return productService.getProductForAdminView(id);
+        else return productService.getProductForPublicView(id);
     }
-
     // POST add product (Admin/Seller requirement)
     // URL: POST /api/products/admin
     /**

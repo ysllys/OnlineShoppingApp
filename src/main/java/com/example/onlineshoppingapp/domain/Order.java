@@ -12,7 +12,7 @@ import java.util.List;
  * Represents a customer's order in the online shopping application.
  */
 @Entity
-@Table(name = "Order") // Using "Order" as the table name
+@Table(name = "`Order`") // Using "Order" as the table name
 @Getter
 @Setter
 @NoArgsConstructor

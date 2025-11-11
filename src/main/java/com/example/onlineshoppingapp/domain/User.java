@@ -10,7 +10,7 @@ import lombok.AllArgsConstructor;
  * Represents a User (Customer or Admin) in the online shopping application.
  */
 @Entity
-@Table(name = "User")
+@Table(name = "user")
 @Getter // Generates all getters
 @Setter // Generates all setters
 @NoArgsConstructor // Generates the default (no-argument) constructor required by JPA

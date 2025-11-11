@@ -114,9 +114,15 @@ public class OrderController {
 
         // 2. Look up the full User object/ID using the UserService
         Integer userId = userService.getUserIdByUsername(username);
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         try {
-            Order canceledOrder = orderService.cancelOrder(orderId, userId);
+            Order canceledOrder;
+
+            if (isAdmin) canceledOrder = orderService.sellerCancelOrder(orderId);
+            else canceledOrder = orderService.cancelOrder(orderId, userId);
+
             return ResponseEntity.ok(canceledOrder); // 200 OK
         } catch (ResourceNotFoundException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND); // 404
@@ -137,21 +143,6 @@ public class OrderController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND); // 404
         } catch (IllegalStateException e) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN); // 403 Forbidden (e.g., trying to complete a CANCELED order)
-        }
-    }
-
-    // --- PATCH: Cancel Order (Seller/Admin for sold out locally) ---
-    // URL: PATCH /api/orders/{id}/admin-cancel
-    @PatchMapping("/{orderId}/cancel")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Order> adminCancelOrder(@PathVariable Integer orderId) {
-        try {
-            Order canceledOrder = orderService.sellerCancelOrder(orderId);
-            return ResponseEntity.ok(canceledOrder); // 200 OK
-        } catch (ResourceNotFoundException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND); // 404
-        } catch (IllegalStateException e) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN); // 403 Forbidden
         }
     }
 }

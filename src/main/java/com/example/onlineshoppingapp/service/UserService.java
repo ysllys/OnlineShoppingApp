@@ -2,13 +2,24 @@ package com.example.onlineshoppingapp.service;
 
 import com.example.onlineshoppingapp.dao.UserDAO;
 import com.example.onlineshoppingapp.domain.User;
+import com.example.onlineshoppingapp.security.AuthUserDetail;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
 
     private final UserDAO userDAO;
 
@@ -53,6 +64,42 @@ public class UserService {
         return userOptional
                 .map(User::getId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found for username: " + username));
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        Optional<User> userOptional = userDAO.findByUsername(username);
+
+        if (!userOptional.isPresent()){
+            throw new UsernameNotFoundException("Username does not exist");
+        }
+
+        User user = userOptional.get(); // database user
+
+        return AuthUserDetail.builder() // spring security's userDetail
+                .username(user.getUsername())
+                .password(user.getPasswordHash())
+                .authorities(getAuthoritiesFromUser(user))
+                .accountNonExpired(true)
+                .accountNonLocked(true)
+                .credentialsNonExpired(true)
+                .enabled(true)
+                .isAdmin(user.getIsAdmin())
+                .build();
+    }
+
+    private List<GrantedAuthority> getAuthoritiesFromUser(User user){
+        List<GrantedAuthority> userAuthorities = new ArrayList<>();
+
+        userAuthorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+
+        // Grant admin role if applicable
+        if (user.getIsAdmin()) {
+            userAuthorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        }
+
+
+        return userAuthorities;
     }
 
     // --- Custom Exception for Registration Errors ---

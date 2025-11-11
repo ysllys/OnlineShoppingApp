@@ -10,7 +10,7 @@ import lombok.AllArgsConstructor;
  * Represents a line item within a specific Order, capturing product and historical pricing.
  */
 @Entity
-@Table(name = "OrderItem")
+@Table(name = "order_item")
 @Getter
 @Setter
 @NoArgsConstructor

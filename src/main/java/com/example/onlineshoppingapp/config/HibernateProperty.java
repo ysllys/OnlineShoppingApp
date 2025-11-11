@@ -22,9 +22,6 @@ public class HibernateProperty {
     @Value("${database.hibernate.username}")
     private String username;
 
-    @Value("${database.hibernate.password}")
-    private String password;
-
     @Value("${database.hibernate.dialect}")
     private String dialect;
 

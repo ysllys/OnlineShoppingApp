@@ -2,7 +2,6 @@ package com.example.onlineshoppingapp.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,5 +21,8 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Password is required")
-    private String password; // Note: Use 'password' field name, not 'passwordHash' for input
+    private String password;
+
+//    private String firstName;
+//    private String lastName;
 }
