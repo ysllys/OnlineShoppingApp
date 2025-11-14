@@ -1,11 +1,11 @@
 package com.example.onlineshoppingapp.controller;
 
+import com.example.onlineshoppingapp.Views;
 import com.example.onlineshoppingapp.domain.Product;
 import com.example.onlineshoppingapp.dto.ProductCreationRequest;
 import com.example.onlineshoppingapp.dto.ProductUpdateRequest;
 import com.example.onlineshoppingapp.security.AuthUserDetail;
 import com.example.onlineshoppingapp.service.ProductService;
-import com.example.onlineshoppingapp.Views;
 import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/products")
@@ -26,14 +28,25 @@ public class ProductController {
         this.productService = productService;
     }
 
+    @JsonView(Views.PublicView.class)
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public Product getDetail(@AuthenticationPrincipal AuthUserDetail userDetails, @PathVariable Integer id) {
+    public Product getProductById(@AuthenticationPrincipal AuthUserDetail userDetails, @PathVariable Integer id) {
         boolean isAdmin = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         if (isAdmin) return productService.getProductForAdminView(id);
         else return productService.getProductForPublicView(id);
+    }
+    @JsonView(Views.PublicView.class)
+    @GetMapping("/all")
+    @PreAuthorize("isAuthenticated()")
+    public List<Product> listProducts(@AuthenticationPrincipal AuthUserDetail userDetails) {
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (isAdmin) return productService.getAllProductsForAdminView();
+        else return productService.getAllProductsForPublicView();
     }
     // POST add product (Admin/Seller requirement)
     // URL: POST /api/products/admin
@@ -42,8 +55,8 @@ public class ProductController {
      * Requires the full Product entity in the request body (name, description,
      * wholesalePrice, retailPrice, and quantity).
      */
-    // @PostMapping("/products")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')") //hasAuthority('ROLE_ADMIN')
     // NOTE: This method should be secured with @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Product> addProduct(@Valid @RequestBody ProductCreationRequest creationDTO) {
 

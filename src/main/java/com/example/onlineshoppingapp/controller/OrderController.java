@@ -4,6 +4,8 @@ import com.example.onlineshoppingapp.dao.OrderDAO.NotEnoughInventoryException;
 import com.example.onlineshoppingapp.dao.OrderDAO.ResourceNotFoundException;
 import com.example.onlineshoppingapp.domain.Order;
 import com.example.onlineshoppingapp.dto.OrderCreationRequest;
+import com.example.onlineshoppingapp.dto.OrderDetailResponse;
+import com.example.onlineshoppingapp.security.AuthUserDetail;
 import com.example.onlineshoppingapp.service.OrderService;
 import com.example.onlineshoppingapp.service.UserService;
 import jakarta.validation.Valid;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,17 +34,15 @@ public class OrderController {
     }
 
     // --- POST: Place an order (User) ---
-    // URL: POST /api/orders
     // Request Body: { "products": { "productId": quantity, ... } }
     @PostMapping
-    // @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Order> placeOrder(
-            @Valid @RequestBody OrderCreationRequest request, // <--- Use DTO here
-            Principal principal) {
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<Order> placeOrder(@AuthenticationPrincipal AuthUserDetail userDetails,
+            @Valid @RequestBody OrderCreationRequest request) {
 
         try {
             // 1. Get the username (or unique ID if configured that way)
-            String username = principal.getName();
+            String username = userDetails.getUsername();
 
             // 2. Look up the full User object/ID using the UserService
             Integer userId = userService.getUserIdByUsername(username);
@@ -60,57 +61,58 @@ public class OrderController {
     // --- GET all orders by user ---
     // URL: GET /api/orders
     @GetMapping("/all")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<Order>> getOrdersByUser(Principal principal) {
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<OrderDetailResponse>> getOrdersByUser(@AuthenticationPrincipal AuthUserDetail userDetails) {
         // 1. Get the username (or unique ID if configured that way)
-        String username = principal.getName();
+        String username = userDetails.getUsername();
 
         // 2. Look up the full User object/ID using the UserService
         Integer userId = userService.getUserIdByUsername(username);
 
-        List<Order> orders = orderService.getOrdersByUserId(userId);
+        List<OrderDetailResponse> orders = orderService.getOrdersByUserId(userId);
         return ResponseEntity.ok(orders);
     }
 
     // --- GET order detail ---
     // URL: GET /api/orders/{id}
     @GetMapping("/{orderId}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Order> getOrderDetail(@PathVariable Integer orderId, Principal principal) {
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<OrderDetailResponse> getOrderDetail(@AuthenticationPrincipal AuthUserDetail userDetails,
+                                                              @PathVariable Integer orderId) {
         try {
-            // 1. Get the username (or unique ID if configured that way)
-            String username = principal.getName();
-
-            // 2. Look up the full User object/ID using the UserService
+            String username = userDetails.getUsername();
             Integer userId = userService.getUserIdByUsername(username);
 
-            // 2. **Security Lookup Required Here:** Determine isAdmin status from roles
-            // This still requires accessing the full Authentication object/roles
-            boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+            boolean isAdmin = userDetails.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-            // 3. Call the service with the order ID, user ID, and role
-            Order order = orderService.getOrderDetailById(orderId);
+            // 1. Call the service method that returns the DTO
+            OrderDetailResponse orderDto = orderService.getOrderDetailById(orderId);
 
-            if (isAdmin) ResponseEntity.ok(order);
-            if (order.getUser().getId().equals(userId)) {
-                return ResponseEntity.ok(order);
+            // 2. Perform Authorization Check (must be Admin OR the Order's User)
+            if (isAdmin || orderDto.getPlacedByUsername().equals(username)) {
+                return ResponseEntity.ok(orderDto);
             }
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN); // 403 Forbidden
+
+            // 3. Deny access if unauthorized
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+
         } catch (ResourceNotFoundException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (OrderService.SecurityException e) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN); // 403 Access Denied
+            // Note: This catch block is likely unnecessary now if you rely on the main FORBIDDEN status.
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
     }
 
     // --- PATCH: Cancel Order (User) ---
     // URL: PATCH /api/orders/{id}/cancel
     @PatchMapping("/{orderId}/cancel")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Order> userCancelOrder(@PathVariable Integer orderId, Principal principal) {
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<OrderDetailResponse> userCancelOrder(@AuthenticationPrincipal AuthUserDetail userDetails,
+                                                 @PathVariable Integer orderId) {
         // 1. Get the username (or unique ID if configured that way)
-        String username = principal.getName();
+        String username = userDetails.getUsername();
 
         // 2. Look up the full User object/ID using the UserService
         Integer userId = userService.getUserIdByUsername(username);
@@ -118,7 +120,7 @@ public class OrderController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         try {
-            Order canceledOrder;
+            OrderDetailResponse canceledOrder;
 
             if (isAdmin) canceledOrder = orderService.sellerCancelOrder(orderId);
             else canceledOrder = orderService.cancelOrder(orderId, userId);

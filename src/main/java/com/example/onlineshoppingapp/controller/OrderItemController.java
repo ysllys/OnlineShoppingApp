@@ -1,12 +1,14 @@
 package com.example.onlineshoppingapp.controller;
 
 import com.example.onlineshoppingapp.domain.Product;
+import com.example.onlineshoppingapp.security.AuthUserDetail;
 import com.example.onlineshoppingapp.service.OrderItemService;
 import com.example.onlineshoppingapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -27,12 +29,6 @@ public class OrderItemController {
     }
 
     // Helper method to get the current user's ID
-    private Integer getCurrentUserId(Principal principal) {
-        if (principal == null) {
-            throw new SecurityException("Authentication principal not found.");
-        }
-        return userService.getUserIdByUsername(principal.getName());
-    }
 
     // --- User Reports ---
 
@@ -42,12 +38,12 @@ public class OrderItemController {
      * Secured for the authenticated user.
      */
     @GetMapping("/frequent/{limit}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     // Note: The @JsonView PublicView should be applied to the List<Product> return type
-    public ResponseEntity<List<Product>> getTopFrequentlyBoughtProducts(Principal principal,
+    public ResponseEntity<List<Product>> getTopFrequentlyBoughtProducts(@AuthenticationPrincipal AuthUserDetail userDetails,
                                                                         @PathVariable int limit) {
         try {
-            Integer userId = getCurrentUserId(principal);
+            Integer userId = userService.getUserIdByUsername(userDetails.getUsername());
             List<Product> products = orderItemService.getTopFrequentlyPurchasedProducts(userId, limit);
             return ResponseEntity.ok(products);
         } catch (UserService.ResourceNotFoundException e) {
@@ -61,11 +57,11 @@ public class OrderItemController {
      * Secured for the authenticated user.
      */
     @GetMapping("/recent/{limit}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<Product>> getTopRecentlyBoughtProducts(Principal principal,
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<Product>> getTopRecentlyBoughtProducts(@AuthenticationPrincipal AuthUserDetail userDetails,
                                                                       @PathVariable int limit) {
         try {
-            Integer userId = getCurrentUserId(principal);
+            Integer userId = userService.getUserIdByUsername(userDetails.getUsername());
             List<Product> products = orderItemService.getTopRecentlyPurchasedProducts(userId, limit);
             return ResponseEntity.ok(products);
         } catch (UserService.ResourceNotFoundException e) {

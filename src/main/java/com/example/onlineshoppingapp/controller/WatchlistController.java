@@ -1,12 +1,15 @@
 package com.example.onlineshoppingapp.controller;
 
 import com.example.onlineshoppingapp.domain.Product;
+import com.example.onlineshoppingapp.security.AuthUserDetail;
 import com.example.onlineshoppingapp.service.WatchlistService;
 import com.example.onlineshoppingapp.service.UserService;
 import com.example.onlineshoppingapp.service.WatchlistService.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -39,10 +42,10 @@ public class WatchlistController {
     // --- GET: View In-Stock Watchlist ---
     // URL: GET /api/watchlist
     @GetMapping
-    // @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<Product>> getWatchlist(Principal principal) {
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<Product>> getWatchlist(@AuthenticationPrincipal AuthUserDetail userDetails) {
         try {
-            Integer userId = getCurrentUserId(principal);
+            Integer userId = userService.getUserIdByUsername(userDetails.getUsername());
             List<Product> products = watchlistService.getInStockWatchlist(userId);
 
             // Note: Use @JsonView in the future to filter Product fields for the user
@@ -55,10 +58,11 @@ public class WatchlistController {
     // --- POST: Add Product to Watchlist ---
     // URL: POST /api/watchlist/{productId}
     @PostMapping("/{productId}")
-    // @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> addProductToWatchlist(@PathVariable Integer productId, Principal principal) {
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<Void> addProductToWatchlist(@AuthenticationPrincipal AuthUserDetail userDetails,
+                                                      @PathVariable Integer productId) {
         try {
-            Integer userId = getCurrentUserId(principal);
+            Integer userId = userService.getUserIdByUsername(userDetails.getUsername());
             watchlistService.addToWatchlist(userId, productId);
 
             return new ResponseEntity<>(HttpStatus.CREATED); // 201 Created
@@ -71,10 +75,11 @@ public class WatchlistController {
     // --- DELETE: Remove Product from Watchlist ---
     // URL: DELETE /api/watchlist/{productId}
     @DeleteMapping("/{productId}")
-    // @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> removeProductFromWatchlist(@PathVariable Integer productId, Principal principal) {
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<Void> deleteProductToWatchlist(@AuthenticationPrincipal AuthUserDetail userDetails,
+                                                      @PathVariable Integer productId) {
         try {
-            Integer userId = getCurrentUserId(principal);
+            Integer userId = userService.getUserIdByUsername(userDetails.getUsername());
             watchlistService.removeFromWatchlist(userId, productId);
 
             // 204 No Content is standard for a successful DELETE

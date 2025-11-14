@@ -108,6 +108,10 @@ public class ProductService {
         // DAO enforces the stock check (quantity > 0)
         return productDAO.findAllInStock();
     }
+    @Transactional(readOnly = true)
+    public List<Product> getAllProductsForAdminView() {
+        return productDAO.listAllProducts();
+    }
 
     /**
      * Retrieves the product details for the Public User View.

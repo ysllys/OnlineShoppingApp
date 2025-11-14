@@ -25,11 +25,10 @@ public class AuthUserDetail implements UserDetails {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // All users have a basic role, plus ADMIN if the flag is true
         List<GrantedAuthority> authorities = new java.util.ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
 
         if (isAdmin) {
             authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
-        } else {
-            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
         }
         return authorities;
     }

@@ -39,8 +39,8 @@ public class OrderItemDAO {
             WHERE o.user.id = :userId 
             AND o.status != :excludedStatus
             GROUP BY oi.product.id, oi.product 
-            ORDER BY SUM(oi.quantity) DESC, oi.product.id ASC
-            """;
+            ORDER BY SUM(oi.quantity) DESC, oi.product.id ASC 
+            """; // TODO: change to quantity bought
 
         return entityManager.createQuery(hql, Product.class)
                 .setParameter("userId", userId)

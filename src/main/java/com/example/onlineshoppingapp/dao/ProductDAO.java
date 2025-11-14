@@ -71,7 +71,13 @@ public class ProductDAO {
         return entityManager.createQuery(hql, Product.class)
                 .getResultList();
     }
+    public List<Product> listAllProducts() {
+        // HQL references the Java entity name (Product) and attribute name (quantity)
+        String hql = "SELECT p FROM Product p";
 
+        return entityManager.createQuery(hql, Product.class)
+                .getResultList();
+    }
     /**
      * Retrieves the stock quantity for a specific product.
      * @param id The ID of the product.

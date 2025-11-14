@@ -1,5 +1,6 @@
 package com.example.onlineshoppingapp.domain;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -37,7 +38,7 @@ public class Order {
     private LocalDateTime orderTime; // Using LocalDateTime for placement time
 
     @Enumerated(EnumType.STRING) // Stores the enum value as a String ("PROCESSING", "COMPLETED", etc.)
-    @Column(name = "order_status", nullable = false)
+    @Column(name = "status", nullable = false)
     private OrderStatus status;
 
     // ADD THIS FIELD: Defines the relationship to OrderItem

@@ -57,6 +57,7 @@ public class OrderDAO {
 
         // 2. Persist Order and OrderItems
         // Order entity must be persisted first to get its ID
+        order.setStatus(OrderStatus.PROCESSING);
         entityManager.persist(order);
 
         // Associate and persist OrderItems (which capture historical prices)
