@@ -23,10 +23,10 @@ public class ProductDAO {
     @Transactional
     public Product save(Product product) {
         // entityManager.persist() is used for new entities
-        //TODO: check if same product exists by matching name and description
         String hql = "SELECT p FROM Product p WHERE p.name = :productName";
 
-        var result = entityManager.createQuery(hql, Product.class).setParameter("productName", product.getName()).getResultList();
+        var result = entityManager.createQuery(hql, Product.class).setParameter("productName", product.getName())
+                                    .getResultList();
         if (result.size() > 0) return null;
 
         entityManager.persist(product);

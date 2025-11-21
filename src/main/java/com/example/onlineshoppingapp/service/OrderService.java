@@ -1,8 +1,8 @@
 package com.example.onlineshoppingapp.service;
 
 import com.example.onlineshoppingapp.dao.OrderDAO;
-import com.example.onlineshoppingapp.dao.OrderDAO.NotEnoughInventoryException;
-import com.example.onlineshoppingapp.dao.OrderDAO.ResourceNotFoundException; // Assuming you defined this inner class in OrderDAO
+import com.example.onlineshoppingapp.exception.NotEnoughInventoryException;
+import com.example.onlineshoppingapp.exception.ResourceNotFoundException; // Assuming you defined this inner class in OrderDAO
 import com.example.onlineshoppingapp.dao.ProductDAO;
 import com.example.onlineshoppingapp.dao.UserDAO;
 import com.example.onlineshoppingapp.domain.Order;
@@ -13,16 +13,14 @@ import com.example.onlineshoppingapp.domain.User;
 import com.example.onlineshoppingapp.dto.OrderCreationRequest;
 import com.example.onlineshoppingapp.dto.OrderDetailResponse;
 import com.example.onlineshoppingapp.dto.OrderItemRequest;
+import com.example.onlineshoppingapp.exception.SecurityException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class OrderService {
@@ -186,10 +184,4 @@ public class OrderService {
         return OrderDetailResponse.fromEntity(updatedOrder);
     }
 
-    // --- Helper classes (Should be moved to a separate package in a real app) ---
-    public static class SecurityException extends RuntimeException {
-        public SecurityException(String message) {
-            super(message);
-        }
-    }
 }

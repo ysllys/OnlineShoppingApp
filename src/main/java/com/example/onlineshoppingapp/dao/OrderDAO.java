@@ -4,11 +4,12 @@ import com.example.onlineshoppingapp.domain.Order;
 import com.example.onlineshoppingapp.domain.OrderItem;
 import com.example.onlineshoppingapp.domain.Order.OrderStatus;
 import com.example.onlineshoppingapp.domain.Product;
+import com.example.onlineshoppingapp.exception.NotEnoughInventoryException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Repository;
-
+import com.example.onlineshoppingapp.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,14 +18,6 @@ public class OrderDAO {
 
     @PersistenceContext
     private EntityManager entityManager;
-
-    // --- Custom Exception ---
-    // Note: This should ideally be defined in the service layer or a dedicated exception package
-    public static class NotEnoughInventoryException extends RuntimeException {
-        public NotEnoughInventoryException(String message) {
-            super(message);
-        }
-    }
 
     // --- POST: Place an order ---
 
@@ -89,21 +82,6 @@ public class OrderDAO {
 
         OrderStatus currentStatus = order.getStatus();
 
-        // 1. Validate Status Change
-//        if (newStatus == OrderStatus.CANCELED) {
-//            // Cannot cancel a Completed order
-//            if (currentStatus == OrderStatus.COMPLETED) {
-//                throw new IllegalStateException("Completed orders cannot be canceled.");
-//            }
-//        } else if (newStatus == OrderStatus.COMPLETED) {
-//            // Cannot complete a Canceled order
-//            if (currentStatus == OrderStatus.CANCELED) {
-//                throw new IllegalStateException("Canceled orders cannot be completed.");
-//            }
-//        } else {
-//            throw new IllegalArgumentException("Invalid status update: " + newStatus);
-//        }
-
         // 2. Adjust Inventory for CANCELLATION
         // Only increment stock if the order is moving FROM PROCESSING to CANCELED
         if (currentStatus == OrderStatus.PROCESSING && newStatus == OrderStatus.CANCELED) {
@@ -165,13 +143,6 @@ public class OrderDAO {
             return Optional.of(order);
         } catch (jakarta.persistence.NoResultException e) {
             return Optional.empty();
-        }
-    }
-
-    // --- Helper Class (Define this outside the DAO or as a separate file) ---
-    public static class ResourceNotFoundException extends RuntimeException {
-        public ResourceNotFoundException(String message) {
-            super(message);
         }
     }
 }
