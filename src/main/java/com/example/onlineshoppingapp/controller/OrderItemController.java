@@ -40,11 +40,11 @@ public class OrderItemController {
     @GetMapping("/frequent/{limit}")
     @PreAuthorize("hasRole('USER')")
     // Note: The @JsonView PublicView should be applied to the List<Product> return type
-    public ResponseEntity<List<Product>> getTopFrequentlyBoughtProducts(@AuthenticationPrincipal AuthUserDetail userDetails,
+    public ResponseEntity<List<Map<String, Object>>> getTopFrequentlyBoughtProducts(@AuthenticationPrincipal AuthUserDetail userDetails,
                                                                         @PathVariable int limit) {
         try {
             Integer userId = userService.getUserIdByUsername(userDetails.getUsername());
-            List<Product> products = orderItemService.getTopFrequentlyPurchasedProducts(userId, limit);
+            List<Map<String, Object>> products = orderItemService.getTopFrequentlyPurchasedProducts(userId, limit);
             return ResponseEntity.ok(products);
         } catch (UserService.ResourceNotFoundException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -78,8 +78,8 @@ public class OrderItemController {
      */
     @GetMapping("/profit/{limit}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> getMostProfitableProduct(@PathVariable int limit) {
-        Map<String, Object> result = orderItemService.getMostProfitableProduct(limit);
+    public ResponseEntity<List<Map<String, Object>>> getMostProfitableProduct(@PathVariable int limit) {
+        List<Map<String, Object>> result = orderItemService.getMostProfitableProduct(limit);
         return ResponseEntity.ok(result);
     }
 
@@ -94,7 +94,12 @@ public class OrderItemController {
         List<Map<String, Object>> result = orderItemService.getTopPopularProducts(limit);
         return ResponseEntity.ok(result);
     }
-
+    @GetMapping("/sold/total")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Integer> getTopPopularProducts() {
+        Integer result = orderItemService.getTotalProductSoldCount();
+        return ResponseEntity.ok(result);
+    }
     // --- Custom Security Exception ---
     private static class SecurityException extends RuntimeException {
         public SecurityException(String message) {

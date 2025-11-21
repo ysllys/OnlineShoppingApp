@@ -90,19 +90,19 @@ public class OrderDAO {
         OrderStatus currentStatus = order.getStatus();
 
         // 1. Validate Status Change
-        if (newStatus == OrderStatus.CANCELED) {
-            // Cannot cancel a Completed order
-            if (currentStatus == OrderStatus.COMPLETED) {
-                throw new IllegalStateException("Completed orders cannot be canceled.");
-            }
-        } else if (newStatus == OrderStatus.COMPLETED) {
-            // Cannot complete a Canceled order
-            if (currentStatus == OrderStatus.CANCELED) {
-                throw new IllegalStateException("Canceled orders cannot be completed.");
-            }
-        } else {
-            throw new IllegalArgumentException("Invalid status update: " + newStatus);
-        }
+//        if (newStatus == OrderStatus.CANCELED) {
+//            // Cannot cancel a Completed order
+//            if (currentStatus == OrderStatus.COMPLETED) {
+//                throw new IllegalStateException("Completed orders cannot be canceled.");
+//            }
+//        } else if (newStatus == OrderStatus.COMPLETED) {
+//            // Cannot complete a Canceled order
+//            if (currentStatus == OrderStatus.CANCELED) {
+//                throw new IllegalStateException("Canceled orders cannot be completed.");
+//            }
+//        } else {
+//            throw new IllegalArgumentException("Invalid status update: " + newStatus);
+//        }
 
         // 2. Adjust Inventory for CANCELLATION
         // Only increment stock if the order is moving FROM PROCESSING to CANCELED
@@ -143,7 +143,11 @@ public class OrderDAO {
                 .setParameter("userId", userId)
                 .getResultList();
     }
-
+    public List<Order> findAllSeller() {
+        String hql = "SELECT o FROM Order o ORDER BY o.orderTime DESC";
+        return entityManager.createQuery(hql, Order.class)
+                .getResultList();
+    }
     /**
      * Retrieves a specific order and its associated items (GET order detail).
      * Uses JOIN FETCH to load OrderItems in a single query (prevents N+1 problem).

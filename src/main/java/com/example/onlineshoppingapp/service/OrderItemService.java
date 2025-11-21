@@ -32,12 +32,21 @@ public class OrderItemService {
      * @return List of Product entities.
      */
     @Transactional(readOnly = true)
-    public List<Product> getTopFrequentlyPurchasedProducts(Integer userId, int limit) {
+    public List<Map<String, Object>> getTopFrequentlyPurchasedProducts(Integer userId, int limit) {
         // Validate user existence (optional, but good practice)
         userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
-        return orderItemDAO.getTopFrequentlyPurchasedProducts(userId, limit);
+        var results = orderItemDAO.getTopFrequentlyPurchasedProducts(userId, limit);
+
+        return results.stream()
+                .map(obj -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("product", obj[0]);
+                    map.put("totalBought", obj[1]);
+                    return map;
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -69,8 +78,8 @@ public class OrderItemService {
         return results.stream()
                 .map(obj -> {
                     Map<String, Object> map = new HashMap<>();
-                    map.put("product", (Product) obj[0]);
-                    map.put("totalSold", (Long) obj[1]);
+                    map.put("product", obj[0]);
+                    map.put("totalSold", obj[1]);
                     return map;
                 })
                 .collect(Collectors.toList());
@@ -81,23 +90,22 @@ public class OrderItemService {
      * @return Map containing the Product and the total profit generated.
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> getMostProfitableProduct(int limit) {
-        // DAO returns List<Object[]> (limited to 1 result)
+    public List<Map<String, Object>> getMostProfitableProduct(int limit) {
         List<Object[]> results = orderItemDAO.getMostProfitableProduct(limit);
 
-        if (results.isEmpty()) {
-            return Map.of("message", "No completed orders found to calculate profit.");
-        }
-
-        Object[] result = results.get(0);
-
-        Map<String, Object> map = new HashMap<>();
-        map.put("product", (Product) result[0]);
-        map.put("totalProfit", (Double) result[1]); // Assuming the SUM aggregate returns a Double/BigDecimal
-
-        return map;
+        return results.stream()
+                .map(obj -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("product", obj[0]);
+                    map.put("totalProfit", obj[1]);
+                    return map;
+                })
+                .collect(Collectors.toList());
     }
-
+    @Transactional(readOnly = true)
+    public Integer getTotalProductSoldCount() {
+        return orderItemDAO.getTotalSoldCount();
+    }
     // --- Helper Class (Defined in UserService, but included for completeness) ---
     public static class ResourceNotFoundException extends RuntimeException {
         public ResourceNotFoundException(String message) {

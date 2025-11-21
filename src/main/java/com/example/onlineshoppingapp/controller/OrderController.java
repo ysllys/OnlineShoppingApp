@@ -68,8 +68,13 @@ public class OrderController {
 
         // 2. Look up the full User object/ID using the UserService
         Integer userId = userService.getUserIdByUsername(username);
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        List<OrderDetailResponse> orders = orderService.getOrdersByUserId(userId);
+        List<OrderDetailResponse> orders;
+
+        if (isAdmin) orders = orderService.getAllOrders();
+        else orders = orderService.getOrdersByUserId(userId);
         return ResponseEntity.ok(orders);
     }
 
@@ -137,9 +142,9 @@ public class OrderController {
     // URL: PATCH /api/orders/{id}/complete
     @PatchMapping("/{orderId}/complete")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Order> completeOrder(@PathVariable Integer orderId) {
+    public ResponseEntity<OrderDetailResponse> completeOrder(@PathVariable Integer orderId) {
         try {
-            Order completedOrder = orderService.completeOrder(orderId);
+            OrderDetailResponse completedOrder = orderService.completeOrder(orderId);
             return ResponseEntity.ok(completedOrder); // 200 OK
         } catch (ResourceNotFoundException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND); // 404

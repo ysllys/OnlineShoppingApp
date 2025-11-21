@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/watchlist")
+@RequestMapping("/watchlist/products")
 public class WatchlistController {
 
     private final WatchlistService watchlistService;
@@ -41,7 +41,7 @@ public class WatchlistController {
 
     // --- GET: View In-Stock Watchlist ---
     // URL: GET /api/watchlist
-    @GetMapping
+    @GetMapping("/all")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<Product>> getWatchlist(@AuthenticationPrincipal AuthUserDetail userDetails) {
         try {

@@ -1,12 +1,10 @@
 package com.example.onlineshoppingapp.controller;
 
-import com.example.onlineshoppingapp.Views;
 import com.example.onlineshoppingapp.domain.Product;
 import com.example.onlineshoppingapp.dto.ProductCreationRequest;
 import com.example.onlineshoppingapp.dto.ProductUpdateRequest;
 import com.example.onlineshoppingapp.security.AuthUserDetail;
 import com.example.onlineshoppingapp.service.ProductService;
-import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,7 +26,6 @@ public class ProductController {
         this.productService = productService;
     }
 
-    @JsonView(Views.PublicView.class)
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public Product getProductById(@AuthenticationPrincipal AuthUserDetail userDetails, @PathVariable Integer id) {
@@ -38,7 +35,7 @@ public class ProductController {
         if (isAdmin) return productService.getProductForAdminView(id);
         else return productService.getProductForPublicView(id);
     }
-    @JsonView(Views.PublicView.class)
+
     @GetMapping("/all")
     @PreAuthorize("isAuthenticated()")
     public List<Product> listProducts(@AuthenticationPrincipal AuthUserDetail userDetails) {
@@ -66,6 +63,7 @@ public class ProductController {
         // 2. Service handles persistence
         Product savedProduct = productService.addNewProduct(newProduct);
 
+        if (savedProduct == null) return new ResponseEntity<>(savedProduct, HttpStatus.BAD_REQUEST);
         return new ResponseEntity<>(savedProduct, HttpStatus.CREATED);
     }
 

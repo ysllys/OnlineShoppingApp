@@ -14,6 +14,8 @@ import com.example.onlineshoppingapp.dto.OrderCreationRequest;
 import com.example.onlineshoppingapp.dto.OrderDetailResponse;
 import com.example.onlineshoppingapp.dto.OrderItemRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,7 +104,15 @@ public class OrderService {
         }
         return list;
     }
+    public List<OrderDetailResponse> getAllOrders() {
+        List<Order> orders = orderDAO.findAllSeller();
+        List<OrderDetailResponse> list = new ArrayList<>();
 
+        for (var o : orders) {
+            list.add(getOrderDetailById(o.getId()));
+        }
+        return list;
+    }
     /**
      * Retrieves the detail of a specific order.
      */
@@ -123,13 +133,15 @@ public class OrderService {
     @Transactional
     public OrderDetailResponse cancelOrder(Integer orderId, Integer userId) {
 //        // 1. Fetch the raw entity to check ownership and status
-//        Order order = orderDAO.findById(orderId)
-//                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
+        Order order = orderDAO.findDetailById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
 //
 //        // 2. Business rule: User can only cancel their own order
-//        if (!order.getUser().getId().equals(userId)) {
-//            throw new SecurityException("User is not authorized to cancel this order.");
-//        }
+        if (!order.getUser().getId().equals(userId)) {
+            throw new SecurityException("User is not authorized to cancel this order.");
+        } else if (order.getStatus() != OrderStatus.PROCESSING) {
+            throw new ResourceNotFoundException("Cancellation failed. Order is either cancelled or completed.");
+        }
 
         // 3. DAO handles status update, stock increment, and persistence
         // The DAO returns the updated Order entity.
@@ -143,9 +155,17 @@ public class OrderService {
      * Allows a seller/admin to complete a processing order.
      */
     @Transactional
-    public Order completeOrder(Integer orderId) {
+    public OrderDetailResponse completeOrder(Integer orderId) {
         // DAO handles status check and persistence
-        return orderDAO.updateOrderStatus(orderId, OrderStatus.COMPLETED);
+        Order order = orderDAO.findDetailById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
+
+        if (order.getStatus() != OrderStatus.PROCESSING) {
+            throw new ResourceNotFoundException("Completion failed. Order is either cancelled or completed.");
+        }
+        Order updatedOrder = orderDAO.updateOrderStatus(orderId, OrderStatus.COMPLETED);
+
+        return OrderDetailResponse.fromEntity(updatedOrder);
     }
 
     /**
@@ -153,6 +173,13 @@ public class OrderService {
      */
     @Transactional
     public OrderDetailResponse sellerCancelOrder(Integer orderId) {
+        Order order = orderDAO.findDetailById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
+
+        if (order.getStatus() != OrderStatus.PROCESSING) {
+            throw new ResourceNotFoundException("Cancellation failed. Order is either cancelled or completed.");
+        }
+
         Order updatedOrder = orderDAO.updateOrderStatus(orderId, OrderStatus.CANCELED);
 
         // 4. Return the result as a DTO

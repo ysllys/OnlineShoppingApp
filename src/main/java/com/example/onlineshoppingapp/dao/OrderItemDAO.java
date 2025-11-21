@@ -7,6 +7,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class OrderItemDAO {
@@ -17,7 +18,7 @@ public class OrderItemDAO {
     /**
      * Helper constant to exclude canceled orders.
      */
-    private static final OrderStatus EXCLUDED_STATUS = OrderStatus.CANCELED;
+    // private static final OrderStatus[] EXCLUDED_STATUS = {OrderStatus.CANCELED, OrderStatus.PROCESSING};
 
     // --- User Reporting Methods ---
 
@@ -29,22 +30,22 @@ public class OrderItemDAO {
      * @param limit The maximum number of products to return (X).
      * @return List of Product entities.
      */
-    public List<Product> getTopFrequentlyPurchasedProducts(Integer userId, int limit) {
+    public List<Object[]> getTopFrequentlyPurchasedProducts(Integer userId, int limit) {
         // HQL: Select the Product, group by it, count the total quantity,
         // order by total quantity DESC, then by product ID ASC (tiebreaker).
         String hql = """
-            SELECT oi.product 
+            SELECT oi.product , SUM(oi.quantity) AS totalBought
             FROM OrderItem oi
             JOIN oi.order o
             WHERE o.user.id = :userId 
             AND o.status != :excludedStatus
             GROUP BY oi.product.id, oi.product 
-            ORDER BY SUM(oi.quantity) DESC, oi.product.id ASC 
-            """; // TODO: change to quantity bought
+            ORDER BY totalBought DESC
+            """;
 
-        return entityManager.createQuery(hql, Product.class)
+        return entityManager.createQuery(hql, Object[].class)
                 .setParameter("userId", userId)
-                .setParameter("excludedStatus", EXCLUDED_STATUS)
+                .setParameter("excludedStatus", OrderStatus.CANCELED)
                 .setMaxResults(limit)
                 .getResultList();
     }
@@ -72,7 +73,7 @@ public class OrderItemDAO {
 
         return entityManager.createQuery(hql, Product.class)
                 .setParameter("userId", userId)
-                .setParameter("excludedStatus", EXCLUDED_STATUS)
+                .setParameter("excludedStatus", OrderStatus.CANCELED)
                 .setMaxResults(limit)
                 .getResultList();
     }
@@ -91,7 +92,7 @@ public class OrderItemDAO {
             SELECT oi.product, SUM((oi.retailPrice - oi.wholesalePrice) * oi.quantity) AS totalProfit
             FROM OrderItem oi
             JOIN oi.order o
-            WHERE o.status != :excludedStatus
+            WHERE o.status = :permittedStatus
             GROUP BY oi.product.id, oi.product 
             ORDER BY totalProfit DESC
             """;
@@ -99,7 +100,7 @@ public class OrderItemDAO {
         // We use Object[] because we are selecting two different types (Product and BigDecimal/Double).
         // Since we only need the *most* profitable, we'll limit the results to 1 in the service layer.
         return entityManager.createQuery(hql, Object[].class)
-                .setParameter("excludedStatus", EXCLUDED_STATUS)
+                .setParameter("permittedStatus", OrderStatus.COMPLETED)
                 .setMaxResults(limit)
                 .getResultList();
     }
@@ -121,8 +122,30 @@ public class OrderItemDAO {
             """;
 
         return entityManager.createQuery(hql, Object[].class)
-                .setParameter("excludedStatus", EXCLUDED_STATUS)
+                .setParameter("excludedStatus", OrderStatus.CANCELED)
                 .setMaxResults(limit) // Limit to the top 3
                 .getResultList();
+    }
+    public Integer getTotalSoldCount() {
+        // HQL: Group by Product and sum the quantities, ordering by sum descending.
+        String hql = """
+            SELECT SUM(oi.quantity)
+             FROM OrderItem oi
+             JOIN oi.order o
+             WHERE o.status = :permittedStatus
+            """;
+
+        // 1. Create the Query, expecting a Long result from the SUM() function.
+        Long result = entityManager.createQuery(hql, Long.class)
+
+                // 2. Set the parameter, excluding CANCELED orders from the count.
+                .setParameter("permittedStatus", OrderStatus.COMPLETED)
+
+                // 3. Execute the query and retrieve the single result.
+                .getSingleResult();
+
+        return Optional.ofNullable(result)
+                .map(Long::intValue)
+                .orElse(0);
     }
 }

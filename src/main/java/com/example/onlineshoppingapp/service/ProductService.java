@@ -2,14 +2,13 @@ package com.example.onlineshoppingapp.service;
 
 import com.example.onlineshoppingapp.dao.ProductDAO;
 import com.example.onlineshoppingapp.domain.Product;
-import com.example.onlineshoppingapp.Views;
 import com.example.onlineshoppingapp.dto.ProductCreationRequest;
+import com.example.onlineshoppingapp.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ProductService {
@@ -142,10 +141,4 @@ public class ProductService {
 
     // --- Helper Class (Define this outside the service or as a separate file) ---
 
-    // Define a simple runtime exception for better error handling in the Controller
-    public static class ResourceNotFoundException extends RuntimeException {
-        public ResourceNotFoundException(String message) {
-            super(message);
-        }
-    }
 }
