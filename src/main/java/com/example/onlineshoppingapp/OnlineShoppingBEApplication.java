@@ -6,10 +6,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @SpringBootApplication
 @EnableTransactionManagement
-public class OnlineShoppingAppApplication {
+public class OnlineShoppingBEApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(OnlineShoppingAppApplication.class, args);
+        SpringApplication.run(OnlineShoppingBEApplication.class, args);
     }
 
 }
